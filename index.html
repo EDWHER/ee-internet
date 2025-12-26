@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>E&E INTERNET SERVICE</title>
+<style>
+body { font-family: Arial; background:#f4f6f8; margin:0 }
+header { background:#0a3d62; color:white; padding:15px; text-align:center }
+section { padding:20px }
+input, select, textarea, button {
+  width:100%; padding:8px; margin:5px 0;
+}
+button { background:#0a3d62; color:white; border:none; cursor:pointer }
+table { width:100%; border-collapse:collapse; margin-top:20px }
+th, td { border:1px solid #ccc; padding:8px; text-align:center }
+th { background:#dff9fb }
+</style>
+</head>
+
+<body>
+
+<header>
+<h2>E&E INTERNET SERVICE</h2>
+<p>Panel privado de clientes WISP</p>
+</header>
+
+<section>
+<h3>➕ Registrar Cliente</h3>
+
+<input id="nombre" placeholder="Nombre">
+<input id="telefono" placeholder="Teléfono">
+<input id="direccion" placeholder="Dirección">
+<input id="ip" placeholder="IP / PPPoE">
+<select id="plan">
+  <option>10 Mbps</option>
+  <option>15 Mbps</option>
+  <option>20 Mbps</option>
+  <option>30 Mbps</option>
+</select>
+<select id="estado">
+  <option>Activo</option>
+  <option>Suspendido</option>
+</select>
+<textarea id="nota" placeholder="Observaciones"></textarea>
+<button onclick="guardar()">Guardar Cliente</button>
+
+<h3>📋 Clientes Registrados</h3>
+<table>
+<thead>
+<tr>
+<th>Nombre</th><th>Teléfono</th><th>IP</th><th>Plan</th><th>Estado</th>
+</tr>
+</thead>
+<tbody id="tabla"></tbody>
+</table>
+</section>
+
+<script>
+let clientes = JSON.parse(localStorage.getItem("clientes")) || [];
+
+function guardar(){
+  let c = {
+    nombre: nombre.value,
+    telefono: telefono.value,
+    direccion: direccion.value,
+    ip: ip.value,
+    plan: plan.value,
+    estado: estado.value,
+    nota: nota.value
+  };
+  clientes.push(c);
+  localStorage.setItem("clientes", JSON.stringify(clientes));
+  mostrar();
+  alert("Cliente guardado ✔");
+}
+
+function mostrar(){
+  tabla.innerHTML="";
+  clientes.forEach(c=>{
+    tabla.innerHTML+=`
+    <tr>
+    <td>${c.nombre}</td>
+    <td>${c.telefono}</td>
+    <td>${c.ip}</td>
+    <td>${c.plan}</td>
+    <td>${c.estado}</td>
+    </tr>`;
+  });
+}
+mostrar();
+</script>
+
+</body>
+</html>
