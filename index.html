@@ -1,94 +1,809 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<title>E&E INTERNET SERVICE</title>
-<style>
-body { font-family: Arial; background:#f4f6f8; margin:0 }
-header { background:#0a3d62; color:white; padding:15px; text-align:center }
-section { padding:20px }
-input, select, textarea, button {
-  width:100%; padding:8px; margin:5px 0;
-}
-button { background:#0a3d62; color:white; border:none; cursor:pointer }
-table { width:100%; border-collapse:collapse; margin-top:20px }
-th, td { border:1px solid #ccc; padding:8px; text-align:center }
-th { background:#dff9fb }
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>E&E INTERNET SERVICE | Control WISP</title>
+  <style>
+    :root{
+      --bg:#0b1220; --panel:#0f1b33; --card:#111f3b;
+      --muted:#97a4c0; --text:#eaf0ff; --accent:#4da3ff;
+      --good:#29d391; --warn:#ffcc66; --bad:#ff6b6b;
+      --line:rgba(255,255,255,.10); --shadow: 0 10px 30px rgba(0,0,0,.35);
+      --radius: 18px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      background: radial-gradient(1200px 600px at 20% 10%, rgba(77,163,255,.20), transparent 60%),
+                  radial-gradient(900px 500px at 80% 20%, rgba(41,211,145,.18), transparent 60%),
+                  var(--bg);
+      color:var(--text);
+    }
+    .wrap{max-width:1200px; margin:0 auto; padding:22px}
+    header{
+      display:flex; gap:14px; align-items:center; justify-content:space-between;
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+      border:1px solid var(--line);
+      border-radius: var(--radius);
+      padding:16px 18px;
+      box-shadow: var(--shadow);
+      position:sticky; top:14px; z-index:5;
+      backdrop-filter: blur(8px);
+    }
+    .brand{display:flex; gap:12px; align-items:center}
+    .logo{
+      width:44px; height:44px; border-radius:14px;
+      background: linear-gradient(135deg, rgba(77,163,255,.95), rgba(41,211,145,.95));
+      box-shadow: 0 10px 25px rgba(0,0,0,.35);
+    }
+    .brand h1{font-size:16px; margin:0}
+    .brand p{margin:2px 0 0; color:var(--muted); font-size:12px}
+
+    .top-actions{display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end}
+    .btn{
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.04);
+      color:var(--text);
+      padding:10px 12px; border-radius:14px;
+      cursor:pointer;
+      transition:.15s transform, .15s background;
+      display:inline-flex; gap:8px; align-items:center;
+      user-select:none;
+      white-space:nowrap;
+    }
+    .btn:hover{transform: translateY(-1px); background: rgba(255,255,255,.07)}
+    .btn.primary{background: rgba(77,163,255,.18); border-color: rgba(77,163,255,.35)}
+    .btn.good{background: rgba(41,211,145,.16); border-color: rgba(41,211,145,.35)}
+    .btn.bad{background: rgba(255,107,107,.14); border-color: rgba(255,107,107,.35)}
+    .btn.warn{background: rgba(255,204,102,.14); border-color: rgba(255,204,102,.35)}
+    .btn:active{transform: translateY(0px) scale(.99)}
+    .pill{
+      font-size:12px; padding:4px 10px; border-radius:999px;
+      border:1px solid var(--line); color:var(--muted);
+      background: rgba(255,255,255,.03);
+    }
+
+    .grid{display:grid; grid-template-columns: 1.05fr .95fr; gap:16px; margin-top:16px;}
+    @media (max-width: 980px){ .grid{grid-template-columns:1fr} header{position:static} }
+
+    .panel{
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+      border:1px solid var(--line);
+      border-radius: var(--radius);
+      padding:16px;
+      box-shadow: var(--shadow);
+    }
+    .panel h2{margin:0 0 10px; font-size:14px; color:rgba(234,240,255,.95)}
+    .muted{color:var(--muted)}
+    .stats{display:grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap:12px; margin-top:12px;}
+    @media (max-width: 980px){ .stats{grid-template-columns: repeat(2, minmax(0,1fr))} }
+    .stat{background: rgba(0,0,0,.18); border:1px solid var(--line); border-radius: 16px; padding:12px;}
+    .stat .k{font-size:12px; color:var(--muted)}
+    .stat .v{font-size:20px; margin-top:6px; font-weight:700}
+    .v.good{color:var(--good)} .v.bad{color:var(--bad)} .v.warn{color:var(--warn)} .v.accent{color:var(--accent)}
+
+    .row{display:grid; grid-template-columns: 1fr 1fr; gap:10px}
+    @media (max-width: 520px){ .row{grid-template-columns:1fr} }
+    label{font-size:12px; color:var(--muted)}
+    input, select, textarea{
+      width:100%; margin-top:6px; padding:10px 12px;
+      border-radius:14px; border:1px solid var(--line);
+      background: rgba(0,0,0,.20); color: var(--text); outline:none;
+    }
+    textarea{min-height:84px; resize:vertical}
+    .form-actions{display:flex; gap:10px; flex-wrap:wrap; margin-top:10px}
+
+    .toolbar{display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; justify-content:space-between; margin-bottom:10px;}
+    .search{flex:1; min-width:220px}
+    .filters{display:flex; gap:10px; flex-wrap:wrap}
+    .table{
+      width:100%; border-collapse: collapse; overflow:hidden;
+      border-radius: 16px; border:1px solid var(--line);
+    }
+    .table th, .table td{
+      padding:10px 10px; border-bottom:1px solid var(--line);
+      font-size:13px; text-align:left; vertical-align:middle;
+    }
+    .table th{color:rgba(234,240,255,.9); background: rgba(0,0,0,.20)}
+    .table tr:hover td{background: rgba(255,255,255,.03)}
+    .tag{
+      display:inline-flex; align-items:center; gap:6px;
+      padding:4px 10px; border-radius:999px; border:1px solid var(--line);
+      background: rgba(0,0,0,.18); font-size:12px; color: var(--muted);
+    }
+    .dot{width:8px; height:8px; border-radius:999px; background: var(--muted)}
+    .dot.good{background: var(--good)} .dot.bad{background: var(--bad)} .dot.warn{background: var(--warn)}
+    .mini{font-size:12px; color:var(--muted)}
+    .right{text-align:right}
+    .nowrap{white-space:nowrap}
+    .hint{font-size:12px; color:var(--muted); margin-top:6px}
+    .hr{height:1px; background: var(--line); margin:12px 0}
+
+    dialog{
+      border:none; border-radius: 18px; padding:0; width:min(780px, 92vw);
+      background: var(--panel); color: var(--text);
+      box-shadow: var(--shadow); border:1px solid var(--line);
+    }
+    dialog::backdrop{background: rgba(0,0,0,.55)}
+    .modal-head{display:flex; justify-content:space-between; align-items:center; padding:14px 16px; border-bottom:1px solid var(--line); background: rgba(255,255,255,.03);}
+    .modal-body{padding:16px}
+    .split{display:grid; grid-template-columns: 1fr 1fr; gap:12px}
+    @media (max-width: 780px){ .split{grid-template-columns:1fr} }
+  </style>
 </head>
 
 <body>
+  <div class="wrap">
+    <header>
+      <div class="brand">
+        <div class="logo"></div>
+        <div>
+          <h1>E&E INTERNET SERVICE</h1>
+          <p>Control WISP moderno • pagos • corte • suspensión automática</p>
+        </div>
+      </div>
+      <div class="top-actions">
+        <span class="pill" id="pillInfo"></span>
+        <button class="btn" onclick="openSettings()">⚙️ Config</button>
+        <button class="btn good" onclick="runAutoSuspend()">🤖 Suspender morosos</button>
+        <button class="btn" onclick="exportCSV()">⬇️ Exportar</button>
+        <button class="btn bad" onclick="backupCopy()">🧾 Respaldo</button>
+        <button class="btn warn" onclick="backupPaste()">📥 Restaurar</button>
+      </div>
+    </header>
 
-<header>
-<h2>E&E INTERNET SERVICE</h2>
-<p>Panel privado de clientes WISP</p>
-</header>
+    <div class="grid">
+      <div class="panel">
+        <div class="toolbar">
+          <div class="search">
+            <label>Buscar (nombre, teléfono, IP/PPPoE)</label>
+            <input id="q" placeholder="Ej: Sandy Reyes, 192.168.2.60, 809..." oninput="render()" />
+          </div>
+          <div class="filters">
+            <div>
+              <label>Estado</label>
+              <select id="fEstado" onchange="render()">
+                <option value="all">Todos</option>
+                <option value="Activo">Activos</option>
+                <option value="Suspendido">Suspendidos</option>
+              </select>
+            </div>
+            <div>
+              <label>Pago (mes)</label>
+              <select id="fPago" onchange="render()">
+                <option value="all">Todos</option>
+                <option value="paid">Pagaron</option>
+                <option value="unpaid">No han pagado</option>
+              </select>
+            </div>
+            <div>
+              <label>Morosidad</label>
+              <select id="fMoro" onchange="render()">
+                <option value="all">Todos</option>
+                <option value="moro">Morosos</option>
+                <option value="ok">Al día</option>
+              </select>
+            </div>
+          </div>
+        </div>
 
-<section>
-<h3>➕ Registrar Cliente</h3>
+        <div class="stats">
+          <div class="stat"><div class="k">Clientes</div><div class="v accent" id="stClientes">0</div></div>
+          <div class="stat"><div class="k">Activos</div><div class="v good" id="stActivos">0</div></div>
+          <div class="stat"><div class="k">Suspendidos</div><div class="v warn" id="stSusp">0</div></div>
+          <div class="stat"><div class="k">Morosos</div><div class="v bad" id="stMorosos">0</div></div>
 
-<input id="nombre" placeholder="Nombre">
-<input id="telefono" placeholder="Teléfono">
-<input id="direccion" placeholder="Dirección">
-<input id="ip" placeholder="IP / PPPoE">
-<select id="plan">
-  <option>10 Mbps</option>
-  <option>15 Mbps</option>
-  <option>20 Mbps</option>
-  <option>30 Mbps</option>
-</select>
-<select id="estado">
-  <option>Activo</option>
-  <option>Suspendido</option>
-</select>
-<textarea id="nota" placeholder="Observaciones"></textarea>
-<button onclick="guardar()">Guardar Cliente</button>
+          <div class="stat"><div class="k">Cobrado (mes)</div><div class="v good" id="stCobrado">RD$0</div></div>
+          <div class="stat"><div class="k">Pendiente (mes)</div><div class="v bad" id="stPendiente">RD$0</div></div>
+          <div class="stat"><div class="k">Balance neto</div><div class="v accent" id="stBalance">RD$0</div></div>
+          <div class="stat"><div class="k">Corte</div><div class="v warn" id="stCorte">Día 5</div></div>
+        </div>
 
-<h3>📋 Clientes Registrados</h3>
-<table>
-<thead>
-<tr>
-<th>Nombre</th><th>Teléfono</th><th>IP</th><th>Plan</th><th>Estado</th>
-</tr>
-</thead>
-<tbody id="tabla"></tbody>
-</table>
-</section>
+        <div class="hr"></div>
+
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Cliente</th>
+              <th class="nowrap">IP / PPPoE</th>
+              <th>Plan</th>
+              <th class="nowrap">Pago (mes)</th>
+              <th>Estado</th>
+              <th>Morosidad</th>
+              <th class="right nowrap">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+
+        <div class="hint">
+          “Moroso” = No pagó el mes y ya pasó el día de corte (solo cuenta si está Activo).
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>➕ Registrar / Editar cliente</h2>
+        <div class="row">
+          <div><label>Nombre</label><input id="inNombre" placeholder="Ej: Sandy Reyes" /></div>
+          <div><label>Teléfono</label><input id="inTel" placeholder="Ej: 809..." /></div>
+        </div>
+        <div class="row">
+          <div><label>Dirección</label><input id="inDir" placeholder="Sector / calle" /></div>
+          <div><label>IP / PPPoE</label><input id="inIP" placeholder="Ej: 192.168.2.60 o userPPPoE" /></div>
+        </div>
+        <div class="row">
+          <div><label>Plan</label><select id="inPlan"></select></div>
+          <div><label>Estado</label>
+            <select id="inEstado"><option>Activo</option><option>Suspendido</option></select>
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label>Precio mensual (RD$)</label>
+            <input id="inPrecio" type="number" min="0" placeholder="Ej: 800" />
+            <div class="hint">En blanco = usa el precio del plan.</div>
+          </div>
+          <div>
+            <label>Día de corte individual (opcional)</label>
+            <input id="inCorte" type="number" min="1" max="31" placeholder="Ej: 5" />
+            <div class="hint">En blanco = usa el corte general.</div>
+          </div>
+        </div>
+        <div>
+          <label>Notas</label>
+          <textarea id="inNotas" placeholder="Observaciones..."></textarea>
+        </div>
+        <div class="form-actions">
+          <button class="btn primary" onclick="saveClient()">💾 Guardar</button>
+          <button class="btn" onclick="clearForm()">🧽 Limpiar</button>
+          <button class="btn bad" onclick="deleteClient()">🗑️ Eliminar</button>
+        </div>
+
+        <div class="hr"></div>
+
+        <h2>💳 Pagos (mes actual)</h2>
+        <div class="row">
+          <div>
+            <label>Monto pagado (RD$)</label>
+            <input id="inMontoPago" type="number" min="0" placeholder="Ej: 800" />
+          </div>
+          <div>
+            <label>Método</label>
+            <select id="inMetodo">
+              <option>Efectivo</option>
+              <option>Transferencia</option>
+              <option>Depósito</option>
+              <option>Otro</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn good" onclick="markPaid()">✅ Marcar pagado</button>
+          <button class="btn warn" onclick="markUnpaid()">↩️ Quitar pago</button>
+          <button class="btn bad" onclick="toggleSuspendFromForm()">⛔ Suspender/Activar</button>
+        </div>
+        <div class="hint">Selecciona un cliente en la tabla para aplicar pago / suspensión.</div>
+      </div>
+    </div>
+  </div>
+
+  <dialog id="dlg">
+    <div class="modal-head">
+      <div>
+        <strong>⚙️ Configuración WISP</strong>
+        <div class="mini">Mes, corte, suspensión automática, planes y precios</div>
+      </div>
+      <button class="btn" onclick="closeSettings()">✖</button>
+    </div>
+    <div class="modal-body">
+      <div class="split">
+        <div>
+          <h2 style="margin-top:0">Mes de trabajo</h2>
+          <label>Mes (YYYY-MM)</label>
+          <input id="cfgMes" placeholder="2025-12" />
+
+          <div class="hr"></div>
+
+          <h2>Corte general</h2>
+          <label>Día de corte (1-31)</label>
+          <input id="cfgCorte" type="number" min="1" max="31" placeholder="5" />
+
+          <div class="hr"></div>
+
+          <h2>Suspensión automática</h2>
+          <label>Activar suspensión de morosos</label>
+          <select id="cfgAuto">
+            <option value="yes">Sí</option>
+            <option value="no">No</option>
+          </select>
+          <div class="hint">Moroso = Activo + No pagó + pasó el día de corte.</div>
+        </div>
+
+        <div>
+          <h2 style="margin-top:0">Planes y precios (RD$)</h2>
+          <div class="hint">Formato: <b>Plan|Precio</b> por línea. Ej: <b>5 Mbps|700</b></div>
+          <textarea id="cfgPlanes" style="min-height:220px"></textarea>
+          <div class="form-actions">
+            <button class="btn primary" onclick="saveSettings()">Guardar</button>
+            <button class="btn" onclick="resetDefaults()">Restaurar</button>
+          </div>
+
+          <div class="hr"></div>
+
+          <div class="mini">
+            • Todo se guarda en tu navegador.<br/>
+            • Usa “Respaldo” para copiar tus datos y guardarlos en un archivo o WhatsApp privado.<br/>
+          </div>
+        </div>
+      </div>
+    </div>
+  </dialog>
 
 <script>
-let clientes = JSON.parse(localStorage.getItem("clientes")) || [];
+const LS_KEY = "ee_wisp_clients_v3";
+const LS_CFG = "ee_wisp_cfg_v3";
 
-function guardar(){
-  let c = {
-    nombre: nombre.value,
-    telefono: telefono.value,
-    direccion: direccion.value,
-    ip: ip.value,
-    plan: plan.value,
-    estado: estado.value,
-    nota: nota.value
+function nowMonthISO(){
+  const d=new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
+}
+function money(n){
+  const v=Number(n||0);
+  return `RD$${v.toLocaleString("es-DO")}`;
+}
+function uid(){ return "c_"+Math.random().toString(16).slice(2)+Date.now().toString(16); }
+
+let cfg = loadCfg();
+let clients = loadClients();
+let selectedId = null;
+
+function loadCfg(){
+  const raw=localStorage.getItem(LS_CFG);
+  if(raw){ try{ return JSON.parse(raw);}catch(e){} }
+  return {
+    month: nowMonthISO(),
+    cutDay: 5,
+    autoSuspend: true,
+    plans: [
+      {name:"5 Mbps", price:700},
+      {name:"6 Mbps", price:750},
+      {name:"7 Mbps", price:800},
+      {name:"8 Mbps", price:850},
+      {name:"10 Mbps", price:900},
+      {name:"15 Mbps", price:1100},
+      {name:"20 Mbps", price:1300},
+      {name:"30 Mbps", price:1600},
+    ],
   };
-  clientes.push(c);
-  localStorage.setItem("clientes", JSON.stringify(clientes));
-  mostrar();
-  alert("Cliente guardado ✔");
+}
+function saveCfg(){ localStorage.setItem(LS_CFG, JSON.stringify(cfg)); }
+function loadClients(){
+  const raw=localStorage.getItem(LS_KEY);
+  if(!raw) return [];
+  try{ return JSON.parse(raw);}catch(e){ return []; }
+}
+function saveClients(){ localStorage.setItem(LS_KEY, JSON.stringify(clients)); }
+
+function planPrice(planName){
+  const p=cfg.plans.find(x=>x.name===planName);
+  return p?Number(p.price||0):0;
+}
+function getMonth(){ return cfg.month || nowMonthISO(); }
+
+function ensurePayments(c){ if(!c.payments) c.payments={}; return c.payments; }
+function getPay(c, month){ return ensurePayments(c)[month] || null; }
+
+function escapeHtml(s){
+  return String(s||"")
+    .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;").replaceAll("'","&#039;");
 }
 
-function mostrar(){
-  tabla.innerHTML="";
-  clientes.forEach(c=>{
-    tabla.innerHTML+=`
-    <tr>
-    <td>${c.nombre}</td>
-    <td>${c.telefono}</td>
-    <td>${c.ip}</td>
-    <td>${c.plan}</td>
-    <td>${c.estado}</td>
-    </tr>`;
+function todayDay(){ return new Date().getDate(); }
+function getCutDay(c){
+  const d = (c.cutDay!=null && c.cutDay!=="") ? Number(c.cutDay) : Number(cfg.cutDay||5);
+  return (isNaN(d)||d<1||d>31) ? Number(cfg.cutDay||5) : d;
+}
+function isMoroso(c){
+  const month=getMonth();
+  const pay=getPay(c,month);
+  const paid=!!(pay && pay.paid);
+  if(paid) return false;
+  if((c.estado||"Activo")!=="Activo") return false;
+  return todayDay() > getCutDay(c);
+}
+
+function fillPlanSelect(){
+  inPlan.innerHTML="";
+  cfg.plans.forEach(p=>{
+    const op=document.createElement("option");
+    op.value=p.name;
+    op.textContent=`${p.name} • ${money(p.price)}`;
+    inPlan.appendChild(op);
   });
 }
-mostrar();
-</script>
+function setPill(){
+  pillInfo.textContent = `Mes: ${getMonth()} • Corte: día ${cfg.cutDay||5} • Auto: ${cfg.autoSuspend?"Sí":"No"}`;
+  stCorte.textContent = `Día ${cfg.cutDay||5}`;
+}
 
+function clearForm(){
+  selectedId=null;
+  inNombre.value=""; inTel.value=""; inDir.value=""; inIP.value="";
+  inEstado.value="Activo"; inNotas.value="";
+  inPrecio.value=""; inCorte.value="";
+  inMontoPago.value=""; inMetodo.value="Efectivo";
+  if(cfg.plans[0]) inPlan.value=cfg.plans[0].name;
+}
+
+function setFormFromClient(c){
+  selectedId=c.id;
+  inNombre.value=c.nombre||"";
+  inTel.value=c.tel||"";
+  inDir.value=c.dir||"";
+  inIP.value=c.ip||"";
+  inPlan.value=c.plan|| (cfg.plans[0]?.name||"");
+  inEstado.value=c.estado||"Activo";
+  inNotas.value=c.notas||"";
+  inPrecio.value=(c.precio!=="" && c.precio!=null) ? Number(c.precio) : "";
+  inCorte.value=(c.cutDay!=="" && c.cutDay!=null) ? Number(c.cutDay) : "";
+  const basePrice = (c.precio!=="" && c.precio!=null) ? Number(c.precio) : planPrice(c.plan);
+  inMontoPago.value = basePrice ? basePrice : "";
+}
+
+function saveClient(){
+  const nombre=inNombre.value.trim();
+  const tel=inTel.value.trim();
+  const dir=inDir.value.trim();
+  const ip=inIP.value.trim();
+  const plan=inPlan.value;
+  const estado=inEstado.value;
+  const notas=inNotas.value.trim();
+  const precioRaw=inPrecio.value.trim();
+  const cutRaw=inCorte.value.trim();
+
+  if(!nombre){ alert("Pon el nombre."); return; }
+  if(!ip){ alert("Pon IP o PPPoE."); return; }
+
+  const precio = (precioRaw==="") ? "" : Number(precioRaw);
+  if(precioRaw!=="" && isNaN(precio)){ alert("Precio inválido."); return; }
+
+  const cutDay = (cutRaw==="") ? "" : Number(cutRaw);
+  if(cutRaw!=="" && (isNaN(cutDay)||cutDay<1||cutDay>31)){ alert("Día de corte inválido."); return; }
+
+  if(selectedId){
+    const idx=clients.findIndex(x=>x.id===selectedId);
+    if(idx>=0){
+      clients[idx]={...clients[idx], nombre,tel,dir,ip,plan,estado,notas,
+        precio: (precioRaw==="")?"":Number(precio),
+        cutDay: (cutRaw==="")?"":Number(cutDay)
+      };
+    }
+  }else{
+    clients.push({
+      id:uid(), nombre,tel,dir,ip,plan,estado,notas,
+      precio:(precioRaw==="")?"":Number(precio),
+      cutDay:(cutRaw==="")?"":Number(cutDay),
+      payments:{}
+    });
+  }
+  saveClients();
+  if(cfg.autoSuspend) runAutoSuspend(false);
+  render();
+  alert("Guardado ✔");
+}
+
+function deleteClient(){
+  if(!selectedId){ alert("Selecciona un cliente."); return; }
+  const c=clients.find(x=>x.id===selectedId);
+  if(!c) return;
+  if(confirm(`¿Eliminar a ${c.nombre}?`)){
+    clients=clients.filter(x=>x.id!==selectedId);
+    saveClients(); clearForm(); render();
+  }
+}
+
+function toggleSuspend(id){
+  const idx=clients.findIndex(x=>x.id===id);
+  if(idx<0) return;
+  const cur=clients[idx].estado||"Activo";
+  clients[idx].estado=(cur==="Activo")?"Suspendido":"Activo";
+  saveClients();
+  render();
+}
+function toggleSuspendFromForm(){
+  if(!selectedId){ alert("Selecciona un cliente."); return; }
+  toggleSuspend(selectedId);
+  const c=clients.find(x=>x.id===selectedId);
+  if(c) setFormFromClient(c);
+}
+
+function markPaid(){
+  if(!selectedId){ alert("Selecciona un cliente."); return; }
+  const idx=clients.findIndex(x=>x.id===selectedId);
+  if(idx<0) return;
+  const month=getMonth();
+  const basePrice=(clients[idx].precio!=="" && clients[idx].precio!=null) ? Number(clients[idx].precio) : planPrice(clients[idx].plan);
+  const amount=(inMontoPago.value.trim()==="")? basePrice : Number(inMontoPago.value.trim());
+  if(isNaN(amount)||amount<0){ alert("Monto inválido."); return; }
+  const method=inMetodo.value;
+  ensurePayments(clients[idx])[month]={paid:true, amount, method, dateISO:new Date().toISOString()};
+  // Si pagó, lo activamos automáticamente (opcional pero útil)
+  clients[idx].estado="Activo";
+  saveClients();
+  render();
+  alert("Pago marcado ✅");
+}
+
+function markUnpaid(){
+  if(!selectedId){ alert("Selecciona un cliente."); return; }
+  const idx=clients.findIndex(x=>x.id===selectedId);
+  if(idx<0) return;
+  const month=getMonth();
+  ensurePayments(clients[idx])[month]={paid:false, amount:0, method:"", dateISO:new Date().toISOString()};
+  saveClients();
+  if(cfg.autoSuspend) runAutoSuspend(false);
+  render();
+  alert("Pago removido ↩️");
+}
+
+function runAutoSuspend(showAlert=true){
+  if(!cfg.autoSuspend){
+    if(showAlert) alert("Suspensión automática está desactivada en Config.");
+    return;
+  }
+  let count=0;
+  for(const c of clients){
+    if(isMoroso(c) && (c.estado||"Activo")==="Activo"){
+      c.estado="Suspendido";
+      count++;
+    }
+  }
+  saveClients();
+  render();
+  if(showAlert) alert(`Listo 🤖 Suspendidos por morosidad: ${count}`);
+}
+
+function exportCSV(){
+  const month=getMonth();
+  const header=["Nombre","Teléfono","Dirección","IP/PPPoE","Plan","Estado","Corte","Precio","Pagó mes","Monto pagado","Método","Fecha pago","Moroso"];
+  const rows=[header];
+  for(const c of clients){
+    const price=(c.precio!=="" && c.precio!=null) ? Number(c.precio) : planPrice(c.plan);
+    const pay=getPay(c,month);
+    const paid=pay?.paid ? "SI":"NO";
+    const amt=pay?.paid ? Number(pay.amount||0):0;
+    const met=pay?.paid ? (pay.method||""):"";
+    const f=pay?.paid ? (pay.dateISO? new Date(pay.dateISO).toLocaleString("es-DO"):""):"";
+    const moro=isMoroso(c)?"SI":"NO";
+    rows.push([c.nombre,c.tel||"",c.dir||"",c.ip||"",c.plan||"",c.estado||"Activo",getCutDay(c),price,paid,amt,met,f,moro]);
+  }
+  const csv=rows.map(r=>r.map(x=>`"${String(x).replaceAll('"','""')}"`).join(",")).join("\n");
+  const blob=new Blob([csv],{type:"text/csv;charset=utf-8"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url; a.download=`ee-clientes-${month}.csv`;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function backupCopy(){
+  const pack={cfg, clients};
+  navigator.clipboard.writeText(JSON.stringify(pack))
+    .then(()=>alert("Respaldo copiado ✅ (guárdalo en un lugar seguro)"));
+}
+function backupPaste(){
+  const text=prompt("Pega aquí el respaldo (JSON):");
+  if(!text) return;
+  try{
+    const pack=JSON.parse(text);
+    if(!pack.cfg || !pack.clients) throw new Error("inv");
+    cfg=pack.cfg; clients=pack.clients;
+    saveCfg(); saveClients();
+    fillPlanSelect(); setPill(); clearForm(); render();
+    alert("Respaldo restaurado ✅");
+  }catch(e){
+    alert("No pude restaurar. Verifica que pegaste el JSON completo.");
+  }
+}
+
+function openSettings(){
+  cfgMes.value=getMonth();
+  cfgCorte.value=cfg.cutDay||5;
+  cfgAuto.value=cfg.autoSuspend ? "yes":"no";
+  cfgPlanes.value=cfg.plans.map(p=>`${p.name}|${p.price}`).join("\n");
+  dlg.showModal();
+}
+function closeSettings(){ dlg.close(); }
+
+function saveSettings(){
+  const month=cfgMes.value.trim();
+  const cut=Number(cfgCorte.value);
+  const auto=cfgAuto.value==="yes";
+  const lines=cfgPlanes.value.split("\n").map(x=>x.trim()).filter(Boolean);
+
+  if(!month || !/^\d{4}-\d{2}$/.test(month)){ alert("Mes inválido (YYYY-MM)."); return; }
+  if(isNaN(cut) || cut<1 || cut>31){ alert("Día de corte inválido."); return; }
+
+  const plans=[];
+  for(const line of lines){
+    const parts=line.split("|").map(x=>x.trim());
+    if(parts.length<2) continue;
+    const name=parts[0];
+    const price=Number(parts[1]);
+    if(!name || isNaN(price)) continue;
+    plans.push({name, price});
+  }
+  if(plans.length===0){ alert("Agrega al menos un plan con precio."); return; }
+
+  cfg.month=month;
+  cfg.cutDay=cut;
+  cfg.autoSuspend=auto;
+  cfg.plans=plans;
+  saveCfg();
+  fillPlanSelect();
+  setPill();
+  if(cfg.autoSuspend) runAutoSuspend(false);
+  render();
+  closeSettings();
+}
+
+function resetDefaults(){
+  cfg={
+    month: nowMonthISO(),
+    cutDay: 5,
+    autoSuspend: true,
+    plans: [
+      {name:"5 Mbps", price:700},
+      {name:"6 Mbps", price:750},
+      {name:"7 Mbps", price:800},
+      {name:"8 Mbps", price:850},
+      {name:"10 Mbps", price:900},
+      {name:"15 Mbps", price:1100},
+      {name:"20 Mbps", price:1300},
+      {name:"30 Mbps", price:1600},
+    ],
+  };
+  saveCfg();
+  cfgMes.value=cfg.month;
+  cfgCorte.value=cfg.cutDay;
+  cfgAuto.value=cfg.autoSuspend?"yes":"no";
+  cfgPlanes.value=cfg.plans.map(p=>`${p.name}|${p.price}`).join("\n");
+  fillPlanSelect(); setPill();
+  if(cfg.autoSuspend) runAutoSuspend(false);
+  render();
+}
+
+function selectClient(id){
+  const c=clients.find(x=>x.id===id);
+  if(!c) return;
+  setFormFromClient(c);
+  window.scrollTo({top:0, behavior:"smooth"});
+}
+
+function quickPay(id){
+  selectClient(id);
+  markPaid();
+}
+
+function render(){
+  setPill();
+
+  const month=getMonth();
+  const qs=(q.value||"").trim().toLowerCase();
+  const fE=fEstado.value;
+  const fP=fPago.value;
+  const fM=fMoro.value;
+
+  let list=[...clients];
+
+  if(qs){
+    list=list.filter(c=>{
+      const t=`${c.nombre||""} ${c.tel||""} ${c.ip||""}`.toLowerCase();
+      return t.includes(qs);
+    });
+  }
+  if(fE!=="all") list=list.filter(c=>(c.estado||"Activo")===fE);
+  if(fP!=="all"){
+    list=list.filter(c=>{
+      const pay=getPay(c,month);
+      const paid=!!(pay && pay.paid);
+      return fP==="paid" ? paid : !paid;
+    });
+  }
+  if(fM!=="all"){
+    list=list.filter(c=>{
+      const moro=isMoroso(c);
+      return fM==="moro" ? moro : !moro;
+    });
+  }
+
+  // Stats
+  const total=clients.length;
+  const activos=clients.filter(c=>(c.estado||"Activo")==="Activo").length;
+  const susp=total-activos;
+
+  let cobrado=0, pendiente=0, morosos=0;
+
+  for(const c of clients){
+    const price=(c.precio!=="" && c.precio!=null) ? Number(c.precio) : planPrice(c.plan);
+    const pay=getPay(c,month);
+    const paid=!!(pay && pay.paid);
+    if(paid){
+      cobrado+=Number(pay.amount||0);
+    }else{
+      if((c.estado||"Activo")==="Activo") pendiente+=Number(price||0);
+    }
+    if(isMoroso(c)) morosos++;
+  }
+
+  stClientes.textContent=total;
+  stActivos.textContent=activos;
+  stSusp.textContent=susp;
+  stMorosos.textContent=morosos;
+  stCobrado.textContent=money(cobrado);
+  stPendiente.textContent=money(pendiente);
+  stBalance.textContent=money(cobrado-pendiente);
+
+  // Table
+  tbody.innerHTML="";
+  if(list.length===0){
+    tbody.innerHTML=`<tr><td colspan="7" class="mini">No hay resultados.</td></tr>`;
+    return;
+  }
+
+  list.forEach(c=>{
+    const price=(c.precio!=="" && c.precio!=null) ? Number(c.precio) : planPrice(c.plan);
+    const pay=getPay(c,month);
+    const paid=!!(pay && pay.paid);
+    const estado=(c.estado||"Activo");
+    const moro=isMoroso(c);
+
+    const payTag = paid
+      ? `<span class="tag"><span class="dot good"></span>Pagó • ${money(pay.amount||0)}</span>`
+      : `<span class="tag"><span class="dot bad"></span>No pagó • ${money(price)}</span>`;
+
+    const stTag = estado==="Activo"
+      ? `<span class="tag"><span class="dot good"></span>Activo</span>`
+      : `<span class="tag"><span class="dot warn"></span>Suspendido</span>`;
+
+    const moroTag = moro
+      ? `<span class="tag"><span class="dot bad"></span>Moroso (corte ${getCutDay(c)})</span>`
+      : `<span class="tag"><span class="dot good"></span>Al día</span>`;
+
+    const actions = `
+      <div style="display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap">
+        <button class="btn good" onclick="quickPay('${c.id}')">✅ Pago</button>
+        <button class="btn warn" onclick="toggleSuspend('${c.id}')">${estado==="Activo"?"⛔ Susp":"▶️ Act"}</button>
+        <button class="btn" onclick="selectClient('${c.id}')">✏️ Edit</button>
+      </div>
+    `;
+
+    const tr=document.createElement("tr");
+    tr.innerHTML=`
+      <td>
+        <div style="font-weight:700">${escapeHtml(c.nombre||"")}</div>
+        <div class="mini">${escapeHtml(c.tel||"")} • ${escapeHtml(c.dir||"")}</div>
+      </td>
+      <td class="nowrap">${escapeHtml(c.ip||"")}</td>
+      <td><div style="font-weight:700">${escapeHtml(c.plan||"")}</div><div class="mini">${money(price)}</div></td>
+      <td>${payTag}</td>
+      <td>${stTag}</td>
+      <td>${moroTag}</td>
+      <td class="right">${actions}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+(function init(){
+  fillPlanSelect();
+  setPill();
+  clearForm();
+  if(cfg.autoSuspend) runAutoSuspend(false);
+  render();
+})();
+</script>
 </body>
 </html>
